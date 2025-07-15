@@ -23,7 +23,8 @@ for target in $targets; do
     bname="dl/$id"
 
     if [ "$status" -eq 0 ]; then
-      wget -nv -O /mnt/work/$filename $url
+      # wget -nv -O /mnt/work/$filename $url
+      aria2c -x10 -s10 --console-log-level=warn -o /mnt/work/$filename $url
 
       git switch -c $bname
       git add -A

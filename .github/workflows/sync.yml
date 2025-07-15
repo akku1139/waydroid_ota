@@ -19,6 +19,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Install apt packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install aria2
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
