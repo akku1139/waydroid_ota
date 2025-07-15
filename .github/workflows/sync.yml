@@ -33,9 +33,10 @@ jobs:
       - name: Sync with upstream
         run: |
           git remote add up https://github.com/waydroid/OTA.git
-          git fetch --filter=blob:none upstream
+          git fetch --filter=blob:none up
           git merge up/master
           # If a conflict occurs, it will fail automatically.
+          gh repo set-default akku1139/waydroid_ota
 
       - name: Update
         run: bash _akku/update.sh
