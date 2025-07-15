@@ -1095,7 +1095,7 @@
             "id": "cab85a606ac522e3f1531a5844a10a4b6a6da9170a455be2261458f3ca5b567f",
             "romtype": "VANILLA",
             "size": 772198556,
-            "url": "https://sourceforge.net/projects/waydroid/files/images/system/lineage/waydroid_arm64/lineage-18.1-20221206-VANILLA-waydroid_arm64-system.zip/download",
+            "url": "https://github.com/akku1139/waydroid_ota/releases/download/dl-cab85a606ac522e3f1531a5844a10a4b6a6da9170a455be2261458f3ca5b567f/lineage-18.1-20221206-VANILLA-waydroid_arm64-system.zip",
             "version": "18.1"
         },
         {
