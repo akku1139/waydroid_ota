@@ -1,0 +1,48 @@
+name: Sync
+
+on:
+  schedule:
+    # Try a couple of times every Tuesday
+    - cron: '30 6,9,11,13 * * 2'
+  # Allows manual trigger from GitHub UI
+  workflow_dispatch:
+
+concurrency:
+  group: sync
+
+permissions:
+  contents: write
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --unshallow --filter=blob:none
+
+      - name: Sync with upstream
+        run: |
+          git remote add upstream https://github.com/waydroid/OTA.git
+          git fetch --filter=blob:none upstream
+          git merge upstream/master
+          # If a conflict occurs, it will fail automatically.
+
+      - name: Update
+        run: bash _akku/update.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Save
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git add -A
+            git commit -m "Update"
+            git push
+          fi
