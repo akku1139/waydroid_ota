@@ -12,7 +12,7 @@ for target in $targets; do
     status=$?
 
     if [ "$status" -eq 0 ]; then
-      wget -O /mnt/work/${out[2]} ${out[1]}
+      wget -nv -O /mnt/work/${out[2]} ${out[1]}
 
       git add -A
       git commit -m "Update"
