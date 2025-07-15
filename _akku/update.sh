@@ -24,6 +24,8 @@ for target in $targets; do
       git push
 
       gh release create dl-${out[0]} "/mnt/work/${out[2]}"
+
+      rm /mnt/work/${out[2]}
     else
       echo "downloading next file..."
       break
