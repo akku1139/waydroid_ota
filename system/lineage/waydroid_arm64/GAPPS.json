@@ -996,7 +996,7 @@
             "id": "914c51ea6c497a32e1e40c64fd1b506ff43aceb9235687f80eb62fd841e15601",
             "romtype": "GAPPS",
             "size": 860799378,
-            "url": "https://sourceforge.net/projects/waydroid/files/images/system/lineage/waydroid_arm64/lineage-18.1-20221217-GAPPS-waydroid_arm64-system.zip/download",
+            "url": "https://github.com/akku1139/waydroid_ota/releases/download/dl-914c51ea6c497a32e1e40c64fd1b506ff43aceb9235687f80eb62fd841e15601/lineage-18.1-20221217-GAPPS-waydroid_arm64-system.zip",
             "version": "18.1"
         },
         {
