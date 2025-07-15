@@ -1,3 +1,6 @@
+set -x
+set -e
+
 sudo mkdir /mnt/work
 sudo chown runner:runner -R /mnt/work
 
@@ -8,7 +11,9 @@ for target in $targets; do
   cmd="python _akku/save.py $target"
 
   while true; do
+    set +e
     out=($($cmd))
+    set -e
     status=$?
 
     if [ "$status" -eq 0 ]; then
