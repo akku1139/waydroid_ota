@@ -4,7 +4,7 @@ set -e
 sudo mkdir /mnt/work
 sudo chown runner:runner -R /mnt/work
 
-targets=($(find system vendor -type f -name "*.json"))
+targets=$(find system vendor -type f -name "*.json")
 
 for target in $targets; do
   echo "target" $target
