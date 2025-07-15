@@ -37,6 +37,8 @@ jobs:
           git merge up/master
           # If a conflict occurs, it will fail automatically.
           gh repo set-default akku1139/waydroid_ota
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Update
         run: bash _akku/update.sh
