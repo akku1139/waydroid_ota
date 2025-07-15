@@ -13,19 +13,33 @@ for target in $targets; do
   while true; do
     set +e
     out=($($cmd))
-    set -e
     status=$?
+    set -e
+
+    id=${out[0]}
+    url=${out[1]}
+    filename=${out[2]}
+
+    bname="dl/$id"
 
     if [ "$status" -eq 0 ]; then
-      wget -nv -O /mnt/work/${out[2]} ${out[1]}
+      wget -nv -O /mnt/work/$filename $url
 
+      git switch -c $bname
       git add -A
       git commit -m "Update"
-      git push
+      chash=$(git rev-parse HEAD)
+      git push -u origin $bname
 
-      gh release create dl-${out[0]} "/mnt/work/${out[2]}"
+      gh release create dl-$id "/mnt/work/$filename" --target $chash
 
-      rm /mnt/work/${out[2]}
+      git switch master
+      git merge $bname
+      git push -u origin master
+      git branch -d $bname
+      git push --delete origin $bname
+
+      rm /mnt/work/$filename
     else
       echo "downloading next file..."
       break
