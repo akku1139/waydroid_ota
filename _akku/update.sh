@@ -136,7 +136,7 @@ for target in $targets; do
     if [[ -n "$url" && -n "$filename" ]]; then
       URL_TO_FILENAME["${url}"]="${filename}"
     fi
-  done < $(python _akku/files.py)
+  done < $(python _akku/files.py $target)
 
   # Add all download jobs to the queue (asynchronously)
   # The actual parallel execution is limited by MAX_DOWNLOADS in add_download_job
