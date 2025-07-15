@@ -5,7 +5,7 @@ targets=($(find system vendor -type f -name "*.json"))
 
 for target in $targets; do
   echo "target" $target
-  cmd="python _akku/save.py \"$target\""
+  cmd="python _akku/save.py $target"
 
   while true; do
     out=($($cmd))
