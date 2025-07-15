@@ -32,9 +32,9 @@ jobs:
 
       - name: Sync with upstream
         run: |
-          git remote add upstream https://github.com/waydroid/OTA.git
+          git remote add up https://github.com/waydroid/OTA.git
           git fetch --filter=blob:none upstream
-          git merge upstream/master
+          git merge up/master
           # If a conflict occurs, it will fail automatically.
 
       - name: Update
