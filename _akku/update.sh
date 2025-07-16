@@ -62,16 +62,6 @@ issue_download_job() {
   local url="$1"
   local filename="$2"
 
-  # check the job is already running or completed
-  if [[ "${JOB_STATUS[$filename]}" == "RUNNING" || "${JOB_STATUS[$filename]}" == "COMPLETED" ]]; then
-    echo "[helper $filename] the job is already running or completed. skip."
-    return 0
-  fi
-
-  echo "[helper $filename] trying to get a slot..."
-  read -n 1 <&3 # get token (blocking)
-  echo "[helper $filename] starting download"
-
   # start a download job in bg and record pid
   ( run_wget_job "$url" "$filename" ) &
   local actual_job_pid=$!
@@ -119,14 +109,14 @@ wait_for_file_foreground() {
   elif [ "$found_in_queue" == true ]; then
     echo "[fg job '$target_filename'] started job"
     
-    # get token
+    # get token (blocking)
     echo "[fg job $target_filename] trying to get token..."
     read -n 1 <&3
     echo "[fg job $target_filename] starting download"
 
     # Start the actual download job in the fg and wait for it to complete
     run_wget_job "$url_for_target" "$target_filename"
-    # semaphore token will be automatically released
+    # semaphore token will be automatically released by run_wget_job
     echo "[fg job '$target_filename'] download complete"
     return 0
   else
@@ -159,7 +149,6 @@ dispatcher() {
       sleep 1
     fi
 
-    local dispatched_count=0
     for i in "${!JOB_QUEUE[@]}"; do
       local entry="${JOB_QUEUE[$i]}"
       local url=$(echo "$entry" | cut -d' ' -f1)
@@ -170,21 +159,21 @@ dispatcher() {
         continue
       fi
 
-      # Check if slots are available（non-blocking）
-      if read -n 1 -t 0 <&3; then # get token
-        echo "" >&3 # return token
-        echo "[dispatcher] dispatch a new job: ($filename)"
-        (issue_download_job "$url" "$filename") &
-        # remove the job from queue
-        unset 'JOB_QUEUE[i]'
-        dispatched_count=$((dispatched_count + 1))
-      else
-        break
-      fi
+      echo "[dispatcher] trying to get a slot for $filename..."
+      read -n 1 <&3 # get token (blocking)
+
+      echo "[dispatcher] dispatch a new job: ($filename)"
+      (issue_download_job "$url" "$filename") &
+      # remove the job from queue
+      unset 'JOB_QUEUE[i]'
+      dispatched_count=$((dispatched_count + 1))
+      
+      # reindex
+      JOB_QUEUE=("${JOB_QUEUE[@]}")
+      # 1つのジョブをディスパッチしたら、次のループで再度トークン取得を試みる
+      # これにより、MAX_JOBSまで同時にジョブが発行される
+      break # 1つディスパッチしたら内側のループを抜けて、外側のwhileループで再度キューの先頭から処理
     done
-    
-    # reindex
-    JOB_QUEUE=("${JOB_QUEUE[@]}") 
 
     if [ "$dispatched_count" -eq 0 ] && [ ${#JOB_QUEUE[@]} -ne 0 ]; then
       # echo "[dispatcher] Cannot dispatch new jobs because slots are filled. waiting..."
@@ -232,6 +221,7 @@ for target in $targets; do
     bname="dl/$id"
 
     if [ "$status" -eq 0 ]; then
+      echo downloading
       # wget -nv -O /mnt/work/$filename $url
       # aria2c -x10 -s10 --console-log-level=warn -o /mnt/work/$filename $url
       wait_for_file_foreground $filename
