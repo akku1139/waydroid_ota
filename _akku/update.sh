@@ -77,102 +77,110 @@ wait_for_file_foreground() {
 
   echo "checking status. file: '$target_filename'"
 
-  # 1. If already completed, no need to do anything
-  if [[ "${JOB_STATUS[$target_filename]}" == "COMPLETED" ]]; then
-    echo "[fg job '$target_filename'] already downloaded"
-    return 0
-  fi
-
-  # 2. If running, wait for it
-  if [[ "${JOB_STATUS[$target_filename]}" == "RUNNING" ]]; then
-    echo "[fg job '$target_filename'] running. waiting for complete"
-    local job_pid="${JOB_PIDS[$target_filename]}"
-    if [ -n "$job_pid" ] && kill -0 "$job_pid" 2>/dev/null; then
-      if ! wait "$job_pid"; then
-        echo "error: PID: $job_pid failed" >&2
-        return 1
-      fi
-    else
-      echo "[fg job '$target_filename'] job PID $job_pid not found or not running. Rechecking status."
-      if [[ "${JOB_STATUS[$target_filename]}" == "COMPLETED" ]]; then
-        return 0
-      elif [[ "${JOB_STATUS[$target_filename]}" == "FAILED" ]]; then
-        return 1
-      fi
-      echo "[fg job '$target_filename'] Unexpected state after PID check. Forcing foreground download."
-    fi
-    echo "[fg job '$target_filename'] download done (waited for running job)"
-    return 0
-  fi
-
-  # At this point, the job is either QUEUED or its status is unknown/stale.
-  # We need to find its URL and ensure it's handled.
-
-  # Find the URL for the target file, and take ownership by marking it RUNNING and removing from queue
-  local found_and_claimed=false
+  # Find the URL for the target file from the queue initially.
+  # This is needed in case we decide to run it foreground.
+  local initial_url_found=false
   for i in "${!JOB_QUEUE[@]}"; do
     local entry="${JOB_QUEUE[$i]}"
     local current_url=$(echo "$entry" | cut -d' ' -f1)
     local current_filename=$(echo "$entry" | cut -d' ' -f2)
-
     if [ "$current_filename" == "$target_filename" ]; then
       url_for_target="$current_url"
-      
-      # CLAIM OWNERSHIP: Mark as RUNNING and remove from queue BEFORE acquiring token
-      JOB_STATUS["$target_filename"]="RUNNING"
-      unset 'JOB_QUEUE[i]'
-      JOB_QUEUE=("${JOB_QUEUE[@]}") # reindex
-      echo "[fg job '$target_filename'] claimed from queue for foreground execution."
-      found_and_claimed=true
+      initial_url_found=true
       break
     fi
   done
 
-  if [ "$found_and_claimed" == false ]; then
-    echo "[fg job] error: couldn't find URL for '$target_filename' in queue. It might have already been dispatched or completed." >&2
-    # If not found in queue, it might have been picked up by dispatcher and is now running/completed.
-    # Re-check status one last time to be sure.
-    if [[ "${JOB_STATUS[$target_filename]}" == "COMPLETED" ]]; then
-      echo "[fg job '$target_filename'] was completed by background dispatcher."
-      return 0
-    elif [[ "${JOB_STATUS[$target_filename]}" == "FAILED" ]]; then
-      echo "[fg job '$target_filename'] was failed by background dispatcher."
+  # If the file was never queued and has no known status, we can't wait for it.
+  if [ "$initial_url_found" == false ] && [[ -z "${JOB_STATUS[$target_filename]}" ]]; then
+      echo "[fg job] error: '$target_filename' was never queued and has no known status." >&2
       return 1
-    elif [[ "${JOB_STATUS[$target_filename]}" == "RUNNING" ]]; then
-      echo "[fg job '$target_filename'] was running by background dispatcher. Waiting for it."
-      local job_pid="${JOB_PIDS[$target_filename]}"
-      if [ -n "$job_pid" ] && kill -0 "$job_pid" 2>/dev/null; then
-        if ! wait "$job_pid"; then
-          echo "error: PID: $job_pid failed" >&2
-          return 1
-        fi
-      else
-        echo "[fg job '$target_filename'] job PID $job_pid not found or not running. Rechecking status."
-        if [[ "${JOB_STATUS[$target_filename]}" == "COMPLETED" ]]; then
-          return 0
-        elif [[ "${JOB_STATUS[$target_filename]}" == "FAILED" ]]; then
-          return 1
-        fi
-      fi
-      echo "[fg job '$target_filename'] download done (waited for running job)."
-      return 0
-    fi
-    return 1
   fi
 
-  echo "[fg job '$target_filename'] starting foreground job..."
 
-  # Acquire token (blocking) - now that we've claimed ownership of the job
-  echo "[fg job $target_filename] trying to get token..."
-  read -n 1 <&3 # This will block until a token is available
-  echo "[fg job $target_filename] acquired token. starting download."
-
-  # Start the actual download job in the foreground and wait for it to complete
-  # run_wget_job will release the token and update COMPLETED/FAILED status
-  run_wget_job "$url_for_target" "$target_filename"
-  local exit_code=$?
-  echo "[fg job '$target_filename'] foreground download complete."
-  return $exit_code
+  while true; do
+    case "${JOB_STATUS[$target_filename]}" in
+      "COMPLETED")
+        echo "[fg job '$target_filename'] already downloaded (status: COMPLETED)"
+        return 0
+        ;;
+      "FAILED")
+        echo "[fg job '$target_filename'] download failed (status: FAILED)" >&2
+        return 1
+        ;;
+      "RUNNING")
+        echo "[fg job '$target_filename'] running. waiting for complete (status: RUNNING)"
+        local job_pid="${JOB_PIDS[$target_filename]}"
+        if [ -n "$job_pid" ] && kill -0 "$job_pid" 2>/dev/null; then
+          if ! wait "$job_pid"; then
+            echo "error: PID: $job_pid failed during wait." >&2
+            # Mark as failed if wait fails, to prevent infinite loop if job crashes without status update
+            JOB_STATUS["$target_filename"]="FAILED"
+            return 1
+          fi
+        else
+          # PID not found or process not running. Re-check status, maybe it just completed/failed.
+          echo "[fg job '$target_filename'] job PID $job_pid not found or not running. Rechecking status."
+          # Loop will re-evaluate status in next iteration
+        fi
+        ;;
+      "QUEUED")
+        echo "[fg job '$target_filename'] is queued. Attempting to acquire token for foreground download..."
+        if read -n 1 -t 0.01 <&3; then # Try to acquire token non-blockingly first
+          echo "[fg job $target_filename] acquired token. Starting foreground download."
+          # Claim ownership by updating status and removing from queue
+          JOB_STATUS["$target_filename"]="RUNNING"
+          # Remove from JOB_QUEUE if it's still there (it should be if status is QUEUED)
+          for i in "${!JOB_QUEUE[@]}"; do
+            local entry="${JOB_QUEUE[$i]}"
+            local current_filename=$(echo "$entry" | cut -d' ' -f2)
+            if [ "$current_filename" == "$target_filename" ]; then
+              unset 'JOB_QUEUE[i]'
+              JOB_QUEUE=("${JOB_QUEUE[@]}") # reindex
+              echo "[fg job '$target_filename'] removed from queue for foreground execution."
+              break
+            fi
+          done
+          # Now run the job foreground
+          run_wget_job "$url_for_target" "$target_filename"
+          local exit_code=$?
+          echo "[fg job '$target_filename'] foreground download complete."
+          return $exit_code # run_wget_job updates status and releases token
+        else
+          echo "[fg job '$target_filename'] no token available yet. Waiting for dispatcher or free slot."
+          # No token, so wait a bit and let dispatcher potentially pick it up
+          sleep 0.1
+        fi
+        ;;
+      *)
+        # This case handles initial unknown status or stale entries.
+        # If it's not in JOB_STATUS, it must be in JOB_QUEUE to be valid.
+        # If it's in JOB_QUEUE but not in JOB_STATUS (shouldn't happen if init is correct),
+        # or if status is something unexpected.
+        echo "[fg job '$target_filename'] unknown status or not yet processed. Checking queue..."
+        # Re-verify it's in the queue and set to QUEUED if needed (should be done at init)
+        local found_in_queue_for_url=false
+        for i in "${!JOB_QUEUE[@]}"; do
+          local entry="${JOB_QUEUE[$i]}"
+          local current_url=$(echo "$entry" | cut -d' ' -f1)
+          local current_filename=$(echo "$entry" | cut -d' ' -f2)
+          if [ "$current_filename" == "$target_filename" ]; then
+            url_for_target="$current_url" # Ensure URL is set
+            JOB_STATUS["$target_filename"]="QUEUED" # Ensure status is QUEUED
+            found_in_queue_for_url=true
+            break
+          fi
+        done
+        if [ "$found_in_queue_for_url" == false ]; then
+          # If it's not in queue and not in JOB_STATUS, it's an error or already handled.
+          echo "[fg job] error: '$target_filename' not found in queue and no valid status." >&2
+          return 1
+        fi
+        sleep 0.1 # Wait a bit before next check
+        ;;
+    esac
+    sleep 0.1 # General polling interval for the while loop
+  done
 }
 
 # --- Dispatcher (blocking, bg) ---
