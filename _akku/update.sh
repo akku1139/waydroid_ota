@@ -155,7 +155,7 @@ dispatcher() {
         echo "[dispatcher] The queue is empty and all jobs have completed or failed. stopping."
         break
       fi
-      echo "[dispatcher] The queue is empty, but there are unfinished jobs. waiting..."
+      # echo "[dispatcher] The queue is empty, but there are unfinished jobs. waiting..."
       sleep 1
     fi
 
