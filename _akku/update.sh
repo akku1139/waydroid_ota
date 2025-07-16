@@ -208,7 +208,7 @@ for target in $targets; do
     JOB_QUEUE+=("$url $filename") # enqueue
     JOB_STATUS["$filename"]="QUEUED" # init job status
     echo "added a job to queue: $filename"
-  done < <(python _akku/files.sh $target)
+  done < <(python _akku/files.py $target)
 
   echo "job count: ${#JOB_QUEUE[@]}"
 
@@ -235,14 +235,17 @@ for target in $targets; do
       # aria2c -x10 -s10 --console-log-level=warn -o /mnt/work/$filename $url
       wait_for_file_foreground $filename
 
+      echo pushing
       git switch -c $bname
       git add -A
       git commit -m "Update"
       chash=$(git rev-parse HEAD)
       git push -u origin $bname
 
+      echo "creating release"
       gh release create dl-$id "/mnt/work/$filename" --target $chash
 
+      echo merging
       git switch master
       git merge $bname
       git push -u origin master
