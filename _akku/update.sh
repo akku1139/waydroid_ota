@@ -28,13 +28,13 @@ for ((i=0; i<MAX_JOBS; i++)); do
 done
 
 wget_job() {
-  filename=$1
-  job_id=$2
-  url=${FILENAME_URL[$filename]}
+  local filename="$1"
+  local job_id="$2"
+  local url="${FILENAME_URL[$filename]}"
   if [ "$job_id" = "" ]; then
-    echo "[job] Start downloading '$filename' (pid: $$)"
+    echo "[job] Start downloading '$filename' from outside the job queue (pid: $$)"
   else
-    echo "[job $job_id] Start downloading '$filename' from outside the job queue (pid: $$)"
+    echo "[job $job_id] Start downloading '$filename' (pid: $$)"
   fi
   wget -nv -O /mnt/work/$filename $url
   unset FILENAME_URL[$filename]
@@ -47,23 +47,23 @@ wget_job() {
 
 dispatcher() {
   while true; do
-    filename=${JOB_QUEUE[0]}
+    local filename="${JOB_QUEUE[0]}"
     if [ "$filename" = "" ]; then
       echo "[dispatcher] All jobs have been run. stopping."
       break
     fi
-    JOB_QUEUE=${JOB_QUEUE[@]:1}
+    JOB_QUEUE=(${JOB_QUEUE[@]:1})
     read job_id <&3
     echo "[dispatcher] Starting a job (id: $job_id)"
-    wget_job $filename $job_id &
+    wget_job "$filename" "$job_id" &
     JOB_PID=$!
-    FILENAME_PID[$filename]=$JOB_PID
+    FILENAME_PID[$filename]="$JOB_PID"
   done
 }
 
 wait_for_file_foreground() {
-  filename=$1
-  pid=${FILENAME_PID[$filename]}
+  local filename="$1"
+  local pid="${FILENAME_PID[$filename]}"
   
   if [ "$pid" = "" ]; then
     if [ "${FILENAME_URL[$filename]}" = "" ]; then
@@ -78,7 +78,7 @@ wait_for_file_foreground() {
       done
       JOB_QUEUE=(${JOB_QUEUE[@]})
       echo "[fg] started the job (filename: $filename)"
-      wget_job $filename
+      wget_job "$filename"
       echo "[fg] the job is complete (filename: $filename)"
     fi
   else
@@ -98,15 +98,15 @@ for target in $targets; do
     [[ "$url" =~ ^#.* ]] && continue
     [ -z "$url" ] && continue
 
-    FILENAME_URL[$filename]=$url
+    FILENAME_URL[$filename]="$url"
     JOB_QUEUE+=($filename)
     echo "added a job to queue: $filename"
-  done < <(python _akku/files.py $target)
+  done < <(python _akku/files.py "$target")
 
   echo "job count: ${#JOB_QUEUE[@]}"
 
   dispatcher &
-  DISPATCHER_PID=$!
+  DISPATCHER_PID="$!"
   echo "dispatcher: PID: $DISPATCHER_PID"
   sleep 1
   
@@ -115,12 +115,12 @@ for target in $targets; do
   while true; do
     set +e
     out=($($cmd))
-    status=$?
+    status="$?"
     set -e
 
-    id=${out[0]}
-    url=${out[1]}
-    filename=${out[2]}
+    id="${out[0]}"
+    url="${out[1]}"
+    filename="${out[2]}"
 
     bname="dl/$id"
 
@@ -128,26 +128,26 @@ for target in $targets; do
       echo downloading $filename
       # wget -nv -O /mnt/work/$filename $url
       # aria2c -x10 -s10 --console-log-level=warn -o /mnt/work/$filename $url
-      wait_for_file_foreground $filename
+      wait_for_file_foreground "$filename"
 
       echo pushing
-      git switch -c $bname
+      git switch -c "$bname"
       git add -A
       git commit -m "Update"
       chash=$(git rev-parse HEAD)
       git push -u origin $bname
 
       echo "creating release"
-      gh release create dl-$id "/mnt/work/$filename" --target $chash
+      gh release create "dl-$id" "/mnt/work/$filename" --target "$chash"
 
       echo merging
       git switch master
-      git merge $bname
+      git merge "$bname"
       git push -u origin master
-      git branch -d $bname
-      git push --delete origin $bname
+      git branch -d "$bname"
+      git push --delete origin "$bname"
 
-      rm /mnt/work/$filename
+      rm "/mnt/work/$filename"
 
       echo done
     else
