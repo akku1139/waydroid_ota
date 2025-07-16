@@ -1149,7 +1149,7 @@
             "id": "da8f71739a258a4e65f93b69b735e25c3f9052cce318c4e855510b50ecbb1701",
             "romtype": "VANILLA",
             "size": 752657515,
-            "url": "https://sourceforge.net/projects/waydroid/files/images/system/lineage/waydroid_x86_64/lineage-17.1-20220316-VANILLA-waydroid_x86_64-system.zip/download",
+            "url": "https://github.com/akku1139/waydroid_ota/releases/download/dl-da8f71739a258a4e65f93b69b735e25c3f9052cce318c4e855510b50ecbb1701/lineage-17.1-20220316-VANILLA-waydroid_x86_64-system.zip",
             "version": "17.1"
         },
         {
