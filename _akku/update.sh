@@ -254,6 +254,8 @@ for target in $targets; do
       git push --delete origin $bname
 
       rm /mnt/work/$filename
+
+      echo done
     else
       echo "downloading next file..."
       break
