@@ -160,14 +160,18 @@ dispatcher() {
       fi
 
       echo "[dispatcher] trying to get a slot for $filename..."
-      read -n 1 <&3 # get token (blocking)
+      if read -n 1 -t 0 <&3; then # check token
+        echo "" >&3 # return token
+        echo "[dispatcher] dispatch a new job: ($filename)"
+        (issue_download_job "$url" "$filename") &
+        # remove the job from queue
+        unset 'JOB_QUEUE[i]'
+        dispatched_count=$((dispatched_count + 1))
+      else
+        # スロットが利用可能でなければ、これ以上新しいジョブを発行できない
+        break
+      fi
 
-      echo "[dispatcher] dispatch a new job: ($filename)"
-      (issue_download_job "$url" "$filename") &
-      # remove the job from queue
-      unset 'JOB_QUEUE[i]'
-      dispatched_count=$((dispatched_count + 1))
-      
       # reindex
       JOB_QUEUE=("${JOB_QUEUE[@]}")
       # 1つのジョブをディスパッチしたら、次のループで再度トークン取得を試みる
