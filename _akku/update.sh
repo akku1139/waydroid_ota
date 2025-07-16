@@ -39,6 +39,9 @@ wget_job() {
   wget -nv -O /mnt/work/$filename $url
   unset FILENAME_URL[$filename]
   unset FILENAME_PID[$filename]
+  if [ "$job_id" != "" ]; then
+    echo "$job_id" >&3 # Return token to the semaphore
+  fi
   echo "[job] '$filename' download has been completed"
 }
 
@@ -55,7 +58,6 @@ dispatcher() {
     wget_job $filename $job_id &
     JOB_PID=$!
     FILENAME_PID[$filename]=$JOB_PID
-    echo "$job_id" >&3 # Return token to the semaphore
   done
 }
 
