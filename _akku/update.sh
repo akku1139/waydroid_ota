@@ -9,7 +9,7 @@ targets=$(find system vendor -type f -name "*.json")
 
 ## Download manager
 
-MAX_JOBS=10
+MAX_JOBS=15
 
 # key: filename
 declare -A FILENAME_URL # value: url
@@ -65,7 +65,7 @@ wait_for_file_foreground() {
   filename=$1
   pid=${FILENAME_PID[$filename]}
   
-  if [ "$pid" = ""]; then
+  if [ "$pid" = "" ]; then
     if [ "${FILENAME_URL[$filename]}" = "" ]; then
       echo "[fg] the job is already done (filename: $filename)"
     else
@@ -108,7 +108,7 @@ for target in $targets; do
   dispatcher &
   DISPATCHER_PID=$!
   echo "dispatcher: PID: $DISPATCHER_PID"
-  sleep 2
+  sleep 1
   
   cmd="python _akku/save.py $target"
 
