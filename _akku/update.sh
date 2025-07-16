@@ -122,23 +122,23 @@ wait_for_file_foreground() {
 for target in $targets; do
   echo "target" $target
 
-  ## Job manager
-  while read -r url filename; do
-    [[ "$url" =~ ^#.* ]] && continue
-    [ -z "$url" ] && continue
+  ## Download manager
+  # while read -r url filename; do
+  #   [[ "$url" =~ ^#.* ]] && continue
+  #   [ -z "$url" ] && continue
 
-    FILENAME_URL[$filename]="$url"
-    JOB_QUEUE+=($filename)
-    echo "added a job to queue: $filename"
-  done < <(python _akku/files.py "$target")
+  #   FILENAME_URL[$filename]="$url"
+  #   JOB_QUEUE+=($filename)
+  #   echo "added a job to queue: $filename"
+  # done < <(python _akku/files.py "$target")
 
-  echo "job count: ${#JOB_QUEUE[@]}"
+  # echo "job count: ${#JOB_QUEUE[@]}"
 
-  dispatcher "$target" &
-  DISPATCHER_PID="$!"
-  echo "dispatcher: PID: $DISPATCHER_PID"
-  sleep 1
-  ## End
+  # dispatcher "$target" &
+  # DISPATCHER_PID="$!"
+  # echo "dispatcher: PID: $DISPATCHER_PID"
+  # sleep 1
+  # ## End
   
   cmd="python _akku/save.py $target"
 
