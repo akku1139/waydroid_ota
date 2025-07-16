@@ -1,4 +1,4 @@
-set -x
+# set -x
 set -e
 
 sudo mkdir /mnt/work
@@ -215,6 +215,7 @@ for target in $targets; do
   dispatcher &
   DISPATCHER_PID=$!
   echo "dispatcher: PID: $DISPATCHER_PID"
+  sleep 2
   
   cmd="python _akku/save.py $target"
 
