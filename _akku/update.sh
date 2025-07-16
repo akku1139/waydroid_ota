@@ -66,7 +66,7 @@ issue_download_job() {
   ( run_wget_job "$url" "$filename" ) &
   local actual_job_pid=$!
   JOB_PIDS["$filename"]=$actual_job_pid
-  JOB_STATUS["$filename"]="RUNNING"     # update state
+  JOB_STATUS["$filename"]="RUNNING"       # update state
   echo "[helper $filename] job PID: $actual_job_pid"
 }
 
@@ -77,7 +77,40 @@ wait_for_file_foreground() {
 
   echo "checking status. file: '$target_filename'"
 
-  # find the target job from the queue, execute it if it exists, and wait for it to complete
+  # If already completed, no need to do anything
+  if [[ "${JOB_STATUS[$target_filename]}" == "COMPLETED" ]]; then
+    echo "[fg job '$target_filename'] already downloaded"
+    return 0
+  fi
+
+  # If running, wait for it
+  if [[ "${JOB_STATUS[$target_filename]}" == "RUNNING" ]]; then
+    echo "[fg job '$target_filename'] running. waiting for complete"
+    local job_pid="${JOB_PIDS[$target_filename]}"
+    # Ensure the PID exists before waiting
+    if [ -n "$job_pid" ] && kill -0 "$job_pid" 2>/dev/null; then
+      if ! wait "$job_pid"; then
+        echo "error: PID: $job_pid failed" >&2
+        return 1
+      fi
+    else
+      # PID not found or process not running, assume it failed or was removed unexpectedly
+      echo "[fg job '$target_filename'] job PID $job_pid not found or not running. Rechecking status."
+      # Re-evaluate status, maybe it completed or failed without PID being cleared
+      if [[ "${JOB_STATUS[$target_filename]}" == "COMPLETED" ]]; then
+        return 0
+      elif [[ "${JOB_STATUS[$target_filename]}" == "FAILED" ]]; then
+        return 1
+      fi
+      # If still not completed/failed, it's an unexpected state. Try to re-queue or handle.
+      echo "[fg job '$target_filename'] Unexpected state after PID check. Forcing foreground download."
+      # Fall through to foreground download logic
+    fi
+    echo "[fg job '$target_filename'] download done (waited for running job)"
+    return 0
+  fi
+
+  # If QUEUED or not yet seen (should be QUEUED if it's in the system)
   local found_in_queue=false
   for i in "${!JOB_QUEUE[@]}"; do
     local entry="${JOB_QUEUE[$i]}"
@@ -87,50 +120,40 @@ wait_for_file_foreground() {
     if [ "$current_filename" == "$target_filename" ]; then
       url_for_target="$current_url"
       found_in_queue=true
-      
-      # remove from queue (効率は良くないが、Bash配列ではこれが一般的)
+
+      # Remove from queue immediately if we're taking it foreground
       unset 'JOB_QUEUE[i]'
       JOB_QUEUE=("${JOB_QUEUE[@]}") # reindex
-      echo "[fg job '$target_filename'] removed from queue."
+      echo "[fg job '$target_filename'] removed from queue for foreground execution."
       break
     fi
   done
 
-  if [[ "${JOB_STATUS[$target_filename]}" == "COMPLETED" ]]; then
-    echo "[fg job '$target_filename'] already downloaded"
-    return 0
-  elif [[ "${JOB_STATUS[$target_filename]}" == "RUNNING" ]]; then
-    echo "[fg job '$target_filename'] running. waiting for complete"
-    local job_pid="${JOB_PIDS[$target_filename]}"
-    if ! wait "$job_pid"; then
-      echo "error: PID: $job_pid"
-      return 1
-    fi
-  elif [ "$found_in_queue" == true ]; then
-    echo "[fg job '$target_filename'] started job"
-    
-    # get token (blocking)
-    echo "[fg job $target_filename] trying to get token..."
-    read -n 1 <&3
-    echo "[fg job $target_filename] starting download"
+  if [ "$found_in_queue" == true ]; then
+    echo "[fg job '$target_filename'] starting foreground job..."
 
-    # Start the actual download job in the fg and wait for it to complete
+    # Acquire token (blocking)
+    echo "[fg job $target_filename] trying to get token..."
+    read -n 1 <&3 # This will block until a token is available
+    echo "[fg job $target_filename] acquired token. starting download."
+
+    # Start the actual download job in the foreground and wait for it to complete
+    # run_wget_job will release the token
     run_wget_job "$url_for_target" "$target_filename"
-    # semaphore token will be automatically released by run_wget_job
-    echo "[fg job '$target_filename'] download complete"
-    return 0
+    local exit_code=$?
+    echo "[fg job '$target_filename'] foreground download complete."
+    return $exit_code
   else
-    echo "[fg job] error: couldn't find a job for '$target_filename'."
+    echo "[fg job] error: couldn't find a job for '$target_filename' in queue or running/completed." >&2
     return 1
   fi
-
-  echo "[jg job '$target_filename'] download done"
-  return 0
 }
 
 # --- Dispatcher (blocking, bg) ---
 dispatcher() {
   while true; do
+    local dispatched_this_loop=0 # Reset for each outer loop iteration
+
     # Loop until the queue is empty or there are no more jobs available to run
     if [ ${#JOB_QUEUE[@]} -eq 0 ]; then
       # Stop dispatcher if all jobs are queued and all completed or failed
@@ -142,10 +165,9 @@ dispatcher() {
         fi
       done
       if [ "$all_done_check" == true ]; then
-        echo "[dispatcher] The queue is empty and all jobs have completed or failed. stopping."
+        echo "[dispatcher] The queue is empty and all jobs have completed or failed. Stopping."
         break
       fi
-      # echo "[dispatcher] The queue is empty, but there are unfinished jobs. waiting..."
       sleep 1
     fi
 
@@ -154,33 +176,35 @@ dispatcher() {
       local url=$(echo "$entry" | cut -d' ' -f1)
       local filename=$(echo "$entry" | cut -d' ' -f2)
 
-      # Skip if the state is not QUEUED
+      # Skip if the state is not QUEUED (it might have been picked up by foreground wait)
       if [[ "${JOB_STATUS[$filename]}" != "QUEUED" ]]; then
-        continue
+        # Remove from queue if its status changed (e.g., picked up by foreground)
+        unset 'JOB_QUEUE[i]'
+        JOB_QUEUE=("${JOB_QUEUE[@]}") # reindex
+        continue # Check next item in the queue
       fi
 
-      echo "[dispatcher] trying to get a slot for $filename..."
-      if read -n 1 -t 0 <&3; then # check token
-        echo "" >&3 # return token
-        echo "[dispatcher] dispatch a new job: ($filename)"
-        (issue_download_job "$url" "$filename") &
-        # remove the job from queue
+      echo "[dispatcher] trying to acquire a slot for $filename..."
+      # Attempt to acquire a token non-blockingly.
+      # If read succeeds, a token is consumed.
+      if read -n 1 -t 0.01 <&3; then # Use a very short timeout to make it almost non-blocking
+        echo "[dispatcher] acquired a slot. Dispatching new job: ($filename)"
+        (issue_download_job "$url" "$filename") & # Run in background
+        dispatched_this_loop=$((dispatched_this_loop + 1))
+        # Remove the job from queue now that it's dispatched
         unset 'JOB_QUEUE[i]'
-        dispatched_count=$((dispatched_count + 1))
+        JOB_QUEUE=("${JOB_QUEUE[@]}") # reindex
+        break # Dispatched one job, re-evaluate queue from beginning in next outer loop iteration
       else
-        # スロットが利用可能でなければ、これ以上新しいジョブを発行できない
+        # No slot available, break from inner loop and wait
+        echo "[dispatcher] No slot available for $filename. Waiting..."
         break
       fi
-
-      # reindex
-      JOB_QUEUE=("${JOB_QUEUE[@]}")
-      # 1つのジョブをディスパッチしたら、次のループで再度トークン取得を試みる
-      # これにより、MAX_JOBSまで同時にジョブが発行される
-      break # 1つディスパッチしたら内側のループを抜けて、外側のwhileループで再度キューの先頭から処理
     done
 
-    if [ "$dispatched_count" -eq 0 ] && [ ${#JOB_QUEUE[@]} -ne 0 ]; then
-      # echo "[dispatcher] Cannot dispatch new jobs because slots are filled. waiting..."
+    # If no jobs were dispatched in this iteration and the queue is not empty,
+    # it means all slots are currently occupied.
+    if [ "$dispatched_this_loop" -eq 0 ] && [ ${#JOB_QUEUE[@]} -ne 0 ]; then
       sleep 1
     fi
 
@@ -197,7 +221,7 @@ for target in $targets; do
   while read -r url filename; do
     [[ "$url" =~ ^#.* ]] && continue
     [ -z "$url" ] && continue
-  
+    
     JOB_QUEUE+=("$url $filename") # enqueue
     JOB_STATUS["$filename"]="QUEUED" # init job status
     echo "added a job to queue: $filename"
