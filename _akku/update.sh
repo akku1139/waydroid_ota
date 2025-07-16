@@ -29,12 +29,12 @@ done
 
 wget_job() {
   filename=$1
-  url=${FILENAME_URL[$filename]}
   job_id=$2
+  url=${FILENAME_URL[$filename]}
   if [ "$job_id" = "" ]; then
-    echo "[job] Start downloading '$filename' (from outside the job queue)"
+    echo "[job] Start downloading '$filename' (pid: $$)"
   else
-    echo "[job] Start downloading '$filename' (id: $job_id)"
+    echo "[job $job_id] Start downloading '$filename' from outside the job queue (pid: $$)"
   fi
   wget -nv -O /mnt/work/$filename $url
   unset FILENAME_URL[$filename]
@@ -42,7 +42,7 @@ wget_job() {
   if [ "$job_id" != "" ]; then
     echo "$job_id" >&3 # Return token to the semaphore
   fi
-  echo "[job] '$filename' download has been completed"
+  echo "[job] '$filename' download has been completed (pid: $$)"
 }
 
 dispatcher() {
