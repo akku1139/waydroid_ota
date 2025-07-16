@@ -212,7 +212,7 @@ for target in $targets; do
 
   echo "job count: ${#JOB_QUEUE[@]}"
 
-  dispatcher() &
+  dispatcher &
   DISPATCHER_PID=$!
   echo "dispatcher: PID: $DISPATCHER_PID"
   
