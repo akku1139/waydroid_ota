@@ -30,7 +30,7 @@ done
 echo "The semaphore has been initialized. Available slots: $MAX_JOBS"
 
 # cleanup
-trap "rm -f '$SEMAPHORE'; exec 3>&-; echo 'job queue is cleanuped'; jobs -p | xargs -r kill 2>/dev/null" EXIT
+# trap "rm -f '$SEMAPHORE'; exec 3>&-; echo 'job queue is cleanuped'; jobs -p | xargs -r kill 2>/dev/null" EXIT
 
 # --- download worker ---
 # 1. run wget
