@@ -184,7 +184,7 @@ dispatcher() {
         continue # Check next item in the queue
       fi
 
-      echo "[dispatcher] trying to acquire a slot for $filename..."
+      # echo "[dispatcher] trying to acquire a slot for $filename..."
       # Attempt to acquire a token non-blockingly.
       # If read succeeds, a token is consumed.
       if read -n 1 -t 0.01 <&3; then # Use a very short timeout to make it almost non-blocking
@@ -197,7 +197,7 @@ dispatcher() {
         break # Dispatched one job, re-evaluate queue from beginning in next outer loop iteration
       else
         # No slot available, break from inner loop and wait
-        echo "[dispatcher] No slot available for $filename. Waiting..."
+        # echo "[dispatcher] No slot available for $filename. Waiting..."
         break
       fi
     done
