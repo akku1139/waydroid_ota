@@ -771,7 +771,7 @@
             "id": "c0b9309077b0c4dd55cb71eb507c4d3fe8719fe447a7b70050b14adf16cdd550",
             "romtype": "VANILLA",
             "size": 584143898,
-            "url": "https://sourceforge.net/projects/waydroid/files/images/system/lineage/waydroid_arm/lineage-18.1-20231118-VANILLA-waydroid_arm-system.zip/download",
+            "url": "https://github.com/akku1139/waydroid_ota/releases/download/dl-c0b9309077b0c4dd55cb71eb507c4d3fe8719fe447a7b70050b14adf16cdd550/lineage-18.1-20231118-VANILLA-waydroid_arm-system.zip",
             "version": "18.1"
         },
         {
