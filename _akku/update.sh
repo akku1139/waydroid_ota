@@ -1,4 +1,4 @@
-set -x
+# set -x
 set -e
 
 sudo mkdir /mnt/work
