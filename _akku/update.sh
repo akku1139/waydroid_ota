@@ -77,6 +77,7 @@ dispatcher() {
     case $cmd in
       s)
         echo "[dispatcher] stopping... (target: $target)"
+        break
         ;;
       r\ *) # remove from job queue
         filename=$(echo "$cmd" | cut -c 3-)
