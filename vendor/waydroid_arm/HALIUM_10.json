@@ -996,7 +996,7 @@
             "id": "fe0a3c7511ae0ff7f590405862632a587899142a8d0d466b9b4c15bf083482a8",
             "romtype": "HALIUM_10",
             "size": 19300947,
-            "url": "https://sourceforge.net/projects/waydroid/files/images/vendor/waydroid_arm/lineage-17.1-20230211-HALIUM_10-waydroid_arm-vendor.zip/download",
+            "url": "https://github.com/akku1139/waydroid_ota/releases/download/dl-fe0a3c7511ae0ff7f590405862632a587899142a8d0d466b9b4c15bf083482a8/lineage-17.1-20230211-HALIUM_10-waydroid_arm-vendor.zip",
             "version": "17.1"
         },
         {
