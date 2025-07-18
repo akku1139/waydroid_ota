@@ -9,6 +9,7 @@ targets=$(find system vendor -type f -name "*.json")
 
 ## Download manager
 
+# < 1000 (case [0-9]|[0-9][0-9]|[0-9][0-9][0-9])
 MAX_JOBS=15
 
 ### Global vars, but they are not shared in subshells.
@@ -56,13 +57,14 @@ wget_job() {
 # main logic. All global variables must be updated here.
 dispatcher() {
   export PS4="# "
-
-  echo "debug: [dispatcher] show job queue: ${JOB_QUEUE[@]}"
-
-  local target=$1
+  local target="$1"
   local job_id
   local cmd
   local filename
+
+  echo "debug: [dispatcher] show job queue: ${JOB_QUEUE[@]} (target: $target)"
+  echo "debug: [dispatcher] show url list: ${FILENAME_URL[@]} (target: $target)"
+  echo "debug: [dispatcher] show pid list: ${FILENAME_PID[@]} (target: $target)"
 
   echo "[dispatcher] starting... (target: $target)"
   while true; do
@@ -115,7 +117,7 @@ dispatcher() {
         JOB_PID=$!
         echo "$JOB_PID" >&4
         ;;
-      [0-9][0-9]*)
+      [0-9]|[0-9][0-9]|[0-9][0-9][0-9]) # Numbers up to three digits
         local filename="${JOB_QUEUE[0]}"
         # if [ "$filename" = "" ]; then
         #   echo "[dispatcher] All jobs have been run. stopping."
@@ -231,6 +233,7 @@ for target in $targets; do
       echo "downloading next file..."
       # Stop dispatcher
       echo "s" >&3
+      sleep 1
       break
     fi
   done
