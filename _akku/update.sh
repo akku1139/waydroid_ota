@@ -31,6 +31,10 @@ for ((i=0; i<MAX_JOBS; i++)); do
   echo "$i" >&3
 done
 
+RES_PIPE="/run/user/$(id -u)/dl_res_$$"
+mkfifo "$RES_PIPE" || { echo "Error: Couldn't create res pipe"; exit 1; }
+exec 4<> "$RES_PIPE"
+
 wget_job() {
   local filename="$1"
   local job_id="$2"
@@ -41,8 +45,7 @@ wget_job() {
     echo "[job $job_id] Start downloading '$filename' (pid: $$)"
   fi
   wget -nv -O /mnt/work/$filename $url
-  unset FILENAME_URL[$filename] # FIXME
-  unset FILENAME_PID[$filename] # FIXME
+  echo "d $filename" >&3
   if [ "$job_id" != "" ]; then
     echo "$job_id" >&3 # Return token to the semaphore
   fi
@@ -58,20 +61,15 @@ dispatcher() {
 
   echo "[dispatcher] starting... (target: $target)"
   while true; do
-    local filename="${JOB_QUEUE[0]}"
-    # if [ "$filename" = "" ]; then
-    #   echo "[dispatcher] All jobs have been run. stopping."
-    # fi
-    JOB_QUEUE=(${JOB_QUEUE[@]:1})
     read cmd <&3
 
     case $cmd in
       s)
-        echo "[dispatcher-post] stopping... (target: $target)"
+        echo "[dispatcher] stopping... (target: $target)"
         ;;
-      r\ *)
+      r\ *) # remove from job queue
         filename=$(echo "$cmd" | cut -c 3-)
-        # remove from the queue
+        echo "[dispatcher] remove '$filename' from the job queue"
         for i in "${!JOB_QUEUE[@]}" ; do
           if [ "${JOB_QUEUE[$i]}" = "$filename" ]; then
             unset JOB_QUEUE[$i]
@@ -79,9 +77,43 @@ dispatcher() {
         done
         JOB_QUEUE=(${JOB_QUEUE[@]})
         ;;
-      [0-9][0-9]*\ *)
-        ;; # ???
+      d\ *)
+        filename=$(echo "$cmd" | cut -c 3-)
+        echo "[dispatcher] clean up (file: $filename)"
+        unset FILENAME_URL[$filename]
+        unset FILENAME_PID[$filename]
+        ;;
+      p\ *) # get pid
+        filename=$(echo "$cmd" | cut -c 3-)
+        echo "[dispatcher] get pid of '$filename'"
+        echo "${FILENAME_PID[$filename]}" >&4
+        ;;
+      u\ *) # get url
+        filename=$(echo "$cmd" | cut -c 3-)
+        echo "[dispatcher] get url of '$filename'"
+        echo "${FILENAME_URL[$filename]}" >&4
+        ;;
+      w\ *) # manual download
+        filename=$(echo "$cmd" | cut -c 3-)
+        echo "[dispatcher] Starting a manual job (filename: $filename)"
+
+        for i in "${!JOB_QUEUE[@]}" ; do
+          if [ "${JOB_QUEUE[$i]}" = "$filename" ]; then
+            unset JOB_QUEUE[$i]
+          fi
+        done
+        JOB_QUEUE=(${JOB_QUEUE[@]})
+
+        wget_job "$filename" &
+        JOB_PID=$!
+        echo "$JOB_PID" >&4
+        ;;
       [0-9][0-9]*)
+        local filename="${JOB_QUEUE[0]}"
+        # if [ "$filename" = "" ]; then
+        #   echo "[dispatcher] All jobs have been run. stopping."
+        # fi
+        JOB_QUEUE=(${JOB_QUEUE[@]:1})
         job_id="$cmd"    
         echo "[dispatcher] Starting a job (id: $job_id)"
         wget_job "$filename" "$job_id" &
@@ -97,21 +129,27 @@ dispatcher() {
 
 wait_for_file_foreground() {
   local filename="$1"
-  local pid="${FILENAME_PID[$filename]}" # FIXME
-  
+  local pid=""
+  local url=""
+  echo "p $filename" >&3
+  read pid <&4
+
   if [ "$pid" = "" ]; then
-    if [ "${FILENAME_URL[$filename]}" = "" ]; then
+    echo "u $filename" >&3
+    read url <&4
+    if [ "$url" = "" ]; then
       echo "[fg] the job is already done (filename: $filename)"
     else
       echo "[fg] the job is waiting (filename: $filename)"
       echo "r $filename" >&3
       echo "[fg] started the job (filename: $filename)"
-      wget_job "$filename" # TODO; rewrite in dispatcher
+      read pid <&4
+      wait "$pid"
       echo "[fg] the job is complete (filename: $filename)"
     fi
   else
-    echo "[fg] the job is running. waiting for completion... (filename $filename)"
-    wait $pid # FIXME
+    echo "[fg] the job is running. waiting for completion... (filename: $filename)"
+    wait "$pid"
     echo "[fg] the job is complete (filename: $filename)"
   fi
 }
@@ -123,22 +161,22 @@ for target in $targets; do
   echo "target" $target
 
   ## Download manager
-  # while read -r url filename; do
-  #   [[ "$url" =~ ^#.* ]] && continue
-  #   [ -z "$url" ] && continue
+  while read -r url filename; do
+    [[ "$url" =~ ^#.* ]] && continue
+    [ -z "$url" ] && continue
 
-  #   FILENAME_URL[$filename]="$url"
-  #   JOB_QUEUE+=($filename)
-  #   echo "added a job to queue: $filename"
-  # done < <(python _akku/files.py "$target")
+    FILENAME_URL[$filename]="$url"
+    JOB_QUEUE+=($filename)
+    echo "added a job to queue: $filename"
+  done < <(python _akku/files.py "$target")
 
-  # echo "job count: ${#JOB_QUEUE[@]}"
+  echo "job count: ${#JOB_QUEUE[@]}"
 
-  # dispatcher "$target" &
-  # DISPATCHER_PID="$!"
-  # echo "dispatcher: PID: $DISPATCHER_PID"
-  # sleep 1
-  # ## End
+  dispatcher "$target" &
+  DISPATCHER_PID="$!"
+  echo "dispatcher: PID: $DISPATCHER_PID"
+  sleep 1
+  ## End
   
   cmd="python _akku/save.py $target"
 
@@ -158,9 +196,9 @@ for target in $targets; do
       echo downloading $filename
 
       ## select downloader
-      wget -nv -O /mnt/work/$filename $url
+      # wget -nv -O /mnt/work/$filename $url
       # aria2c -x10 -s10 --console-log-level=warn -o /mnt/work/$filename $url # not working?
-      # wait_for_file_foreground "$filename"
+      wait_for_file_foreground "$filename"
 
       echo pushing
       git switch -c "$bname"
@@ -184,6 +222,7 @@ for target in $targets; do
       echo done
     else
       echo "downloading next file..."
+      # Stop dispatcher
       echo "s" >&3
       break
     fi
