@@ -63,8 +63,10 @@ dispatcher() {
   local filename
 
   echo "debug: [dispatcher] show job queue: ${JOB_QUEUE[@]} (target: $target)"
-  echo "debug: [dispatcher] show url list: ${FILENAME_URL[@]} (target: $target)"
-  echo "debug: [dispatcher] show pid list: ${FILENAME_PID[@]} (target: $target)"
+  echo "debug: [dispatcher] show url list (key): ${!FILENAME_URL[@]} (target: $target)"
+  echo "debug: [dispatcher] show url list (value): ${FILENAME_URL[@]} (target: $target)"
+  echo "debug: [dispatcher] show pid list (key): ${!FILENAME_PID[@]} (target: $target)"
+  echo "debug: [dispatcher] show pid list (value): ${FILENAME_PID[@]} (target: $target)"
 
   echo "[dispatcher] starting... (target: $target)"
   while true; do
@@ -118,6 +120,7 @@ dispatcher() {
         echo "$JOB_PID" >&4
         ;;
       [0-9]|[0-9][0-9]|[0-9][0-9][0-9]) # Numbers up to three digits
+        echo "debug: [dispatcher (job)] show job queue: ${JOB_QUEUE[@]} (target: $target)"
         local filename="${JOB_QUEUE[0]}"
         # if [ "$filename" = "" ]; then
         #   echo "[dispatcher] All jobs have been run. stopping."
