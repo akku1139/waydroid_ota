@@ -1,4 +1,4 @@
-set -x
+# set -x
 set -e
 
 sudo mkdir /mnt/work
@@ -62,17 +62,17 @@ dispatcher() {
   local cmd
   local filename
 
-  echo "debug: [dispatcher] show job queue: ${JOB_QUEUE[@]} (target: $target)"
-  echo "debug: [dispatcher] show url list (key): ${!FILENAME_URL[@]} (target: $target)"
-  echo "debug: [dispatcher] show url list (value): ${FILENAME_URL[@]} (target: $target)"
-  echo "debug: [dispatcher] show pid list (key): ${!FILENAME_PID[@]} (target: $target)"
-  echo "debug: [dispatcher] show pid list (value): ${FILENAME_PID[@]} (target: $target)"
+  # echo "debug: [dispatcher] show job queue: ${JOB_QUEUE[@]} (target: $target)"
+  # echo "debug: [dispatcher] show url list (key): ${!FILENAME_URL[@]} (target: $target)"
+  # echo "debug: [dispatcher] show url list (value): ${FILENAME_URL[@]} (target: $target)"
+  # echo "debug: [dispatcher] show pid list (key): ${!FILENAME_PID[@]} (target: $target)"
+  # echo "debug: [dispatcher] show pid list (value): ${FILENAME_PID[@]} (target: $target)"
 
   echo "[dispatcher] starting... (target: $target)"
   while true; do
     read cmd <&3
 
-    echo "debug: [dispatcher] cmd: $cmd"
+    # echo "debug: [dispatcher] cmd: $cmd"
 
     case $cmd in
       s)
@@ -244,6 +244,7 @@ for target in $targets; do
       # Stop dispatcher
       echo "s" >&3
       wait "$DISPATCHER_PID"
+      sleep 1
       break
     fi
   done
