@@ -1023,7 +1023,7 @@
             "id": "7d171f557b3463a0f208f6d9f4e386b884874e5835e8d022e9d6961c0df5706d",
             "romtype": "MAINLINE",
             "size": 51661627,
-            "url": "https://sourceforge.net/projects/waydroid/files/images/vendor/waydroid_arm/lineage-18.1-20221224-MAINLINE-waydroid_arm-vendor.zip/download",
+            "url": "https://github.com/akku1139/waydroid_ota/releases/download/dl-7d171f557b3463a0f208f6d9f4e386b884874e5835e8d022e9d6961c0df5706d/lineage-18.1-20221224-MAINLINE-waydroid_arm-vendor.zip",
             "version": "18.1"
         },
         {
