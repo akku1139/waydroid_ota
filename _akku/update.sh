@@ -122,9 +122,9 @@ dispatcher() {
         ;;
       [0-9]|[0-9][0-9]|[0-9][0-9][0-9]) # Numbers up to three digits
         if [ "${#JOB_QUEUE[@]}" -eq 0 ]; then
-          echo "[dispatcher] job queue is empty. skipping job."
+          echo "[dispatcher] job queue is empty. stopping."
           echo "$cmd" >&3 # Return token to the semaphore
-          continue
+          break
         fi
         local filename="${JOB_QUEUE[0]}"
         # if [ "$filename" = "" ]; then
