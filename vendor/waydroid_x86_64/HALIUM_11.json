@@ -195,7 +195,7 @@
             "id": "9c8a4447ac56af8f4a86707d7f2d404d885d13da7aac6bedc0bc079db57bb423",
             "romtype": "HALIUM_11",
             "size": 54478010,
-            "url": "https://sourceforge.net/projects/waydroid/files/images/vendor/waydroid_x86_64/lineage-18.1-20241116-HALIUM_11-waydroid_x86_64-vendor.zip/download",
+            "url": "https://github.com/akku1139/waydroid_ota/releases/download/dl-9c8a4447ac56af8f4a86707d7f2d404d885d13da7aac6bedc0bc079db57bb423/lineage-18.1-20241116-HALIUM_11-waydroid_x86_64-vendor.zip",
             "version": "18.1"
         },
         {
