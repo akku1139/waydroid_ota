@@ -63,8 +63,9 @@ dispatcher() {
   while true; do
     read cmd <&3
 
+    echo "debug: [dispatcher] cmd: $cmd"
+
     case $cmd in
-      echo "debug: [dispatcher] cmd: $cmd"
       s)
         echo "[dispatcher] stopping... (target: $target)"
         ;;
