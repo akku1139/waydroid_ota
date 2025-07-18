@@ -321,7 +321,7 @@
             "id": "462c63de11fcb9f1a0423314741ed51e102fc3300f4ec0966243b6e861219a41",
             "romtype": "HALIUM_9",
             "size": 7092442,
-            "url": "https://sourceforge.net/projects/waydroid/files/images/vendor/waydroid_arm64/lineage-16.0-20241130-HALIUM_9-waydroid_arm64-vendor.zip/download",
+            "url": "https://github.com/akku1139/waydroid_ota/releases/download/dl-462c63de11fcb9f1a0423314741ed51e102fc3300f4ec0966243b6e861219a41/lineage-16.0-20241130-HALIUM_9-waydroid_arm64-vendor.zip",
             "version": "16.0"
         },
         {
