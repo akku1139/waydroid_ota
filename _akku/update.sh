@@ -36,6 +36,7 @@ mkfifo "$RES_PIPE" || { echo "Error: Couldn't create res pipe"; exit 1; }
 exec 4<> "$RES_PIPE"
 
 wget_job() {
+  PS4="% "
   local filename="$1"
   local job_id="$2"
   local url="${FILENAME_URL[$filename]}" # maybe ok
@@ -54,6 +55,10 @@ wget_job() {
 
 # main logic. All global variables must be updated here.
 dispatcher() {
+  PS4="# "
+
+  echo "debug: [dispatcher] show job queue: $JOB_QUEUE[@]"
+
   local target=$1
   local job_id
   local cmd
