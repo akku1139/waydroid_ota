@@ -24,7 +24,7 @@
             "id": "5d19854079ee7456010da5859edf7c2199e20b33aadbd6ab79864195fb5c64dd",
             "romtype": "MAINLINE",
             "size": 65730919,
-            "url": "https://sourceforge.net/projects/waydroid/files/images/vendor/waydroid_arm/lineage-20.0-20250705-MAINLINE-waydroid_arm-vendor.zip/download",
+            "url": "https://github.com/akku1139/waydroid_ota/releases/download/dl-5d19854079ee7456010da5859edf7c2199e20b33aadbd6ab79864195fb5c64dd/lineage-20.0-20250705-MAINLINE-waydroid_arm-vendor.zip",
             "version": "20.0"
         },
         {
