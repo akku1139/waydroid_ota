@@ -231,7 +231,7 @@
             "id": "e38517240b971090667339cbb47614e5f28c4e16084b38908e111e582b0ac95b",
             "romtype": "MAINLINE",
             "size": 99841225,
-            "url": "https://sourceforge.net/projects/waydroid/files/images/vendor/waydroid_x86/lineage-18.1-20250222-MAINLINE-waydroid_x86-vendor.zip/download",
+            "url": "https://github.com/akku1139/waydroid_ota/releases/download/dl-e38517240b971090667339cbb47614e5f28c4e16084b38908e111e582b0ac95b/lineage-18.1-20250222-MAINLINE-waydroid_x86-vendor.zip",
             "version": "18.1"
         },
         {
