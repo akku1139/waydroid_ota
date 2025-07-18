@@ -233,7 +233,15 @@ for target in $targets; do
       git push -u origin $bname
 
       echo "creating release"
+      set +e
       gh release create "dl-$id" "/mnt/work/$filename" --target "$chash"
+      rstatus="$?"
+      set -e
+
+      if [ "$rstatus" -ne 0 ]; then
+        echo "An error occurred during release. Probably due to duplicate files. Skip."
+        continue
+      fi
 
       echo merging
       git switch master
