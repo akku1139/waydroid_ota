@@ -77,6 +77,9 @@ dispatcher() {
     case $cmd in
       s)
         echo "[dispatcher] stopping... (target: $target)"
+        for ((i=0; i<MAX_JOBS; i++)); do
+          echo "$i" >&3
+        done
         break
         ;;
       r\ *) # remove from job queue
@@ -122,9 +125,10 @@ dispatcher() {
         ;;
       [0-9]|[0-9][0-9]|[0-9][0-9][0-9]) # Numbers up to three digits
         if [ "${#JOB_QUEUE[@]}" -eq 0 ]; then
-          echo "[dispatcher] job queue is empty. stopping."
-          echo "$cmd" >&3 # Return token to the semaphore
-          break
+          echo "[dispatcher] job queue is empty."
+          continue
+          # echo "$cmd" >&3 # Return token to the semaphore
+          # break
         fi
         local filename="${JOB_QUEUE[0]}"
         # if [ "$filename" = "" ]; then
