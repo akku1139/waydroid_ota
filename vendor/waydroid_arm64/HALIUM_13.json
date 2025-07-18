@@ -24,7 +24,7 @@
             "id": "23edb85d5c60884fc82c3eca6212f41cd935e893854a8a879e51931fd1eb77a0",
             "romtype": "HALIUM_13",
             "size": 41502617,
-            "url": "https://sourceforge.net/projects/waydroid/files/images/vendor/waydroid_arm64/lineage-20.0-20250705-HALIUM_13-waydroid_arm64-vendor.zip/download",
+            "url": "https://github.com/akku1139/waydroid_ota/releases/download/dl-23edb85d5c60884fc82c3eca6212f41cd935e893854a8a879e51931fd1eb77a0/lineage-20.0-20250705-HALIUM_13-waydroid_arm64-vendor.zip",
             "version": "20.0"
         }
     ]
