@@ -120,20 +120,23 @@ dispatcher() {
         echo "$JOB_PID" >&4
         ;;
       [0-9]|[0-9][0-9]|[0-9][0-9][0-9]) # Numbers up to three digits
-        echo "debug: [dispatcher (job)] show job queue: ${JOB_QUEUE[@]} (target: $target)"
+        if [ "${#JOB_QUEUE[@]}" -eq 0 ]; then
+          echo "[dispatcher] job queue is empty. skipping job."
+          continue
+        fi
         local filename="${JOB_QUEUE[0]}"
         # if [ "$filename" = "" ]; then
         #   echo "[dispatcher] All jobs have been run. stopping."
         # fi
         JOB_QUEUE=(${JOB_QUEUE[@]:1})
-        job_id="$cmd"    
+        job_id="$cmd"
         echo "[dispatcher] Starting a job (id: $job_id)"
         wget_job "$filename" "$job_id" &
         JOB_PID=$!
         FILENAME_PID[$filename]="$JOB_PID"
         ;;
       *)
-        echo "[dispatcher-post] received unknown command '$cmd'"
+        echo "[dispatcher] received unknown command '$cmd'"
         ;;
     esac
   done
@@ -156,12 +159,12 @@ wait_for_file_foreground() {
       echo "r $filename" >&3
       echo "[fg] started the job (filename: $filename)"
       read pid <&4
-      wait "$pid"
+      python _akku/waitpid.py "$pid"
       echo "[fg] the job is complete (filename: $filename)"
     fi
   else
     echo "[fg] the job is running. waiting for completion... (filename: $filename)"
-    wait "$pid"
+    python _akku/waitpid.py "$pid"
     echo "[fg] the job is complete (filename: $filename)"
   fi
 }
@@ -173,6 +176,10 @@ for target in $targets; do
   echo "target" $target
 
   ## Download manager
+  FILENAME_URL=()
+  FILENAME_PID=()
+  JOB_QUEUE=()
+
   while read -r url filename; do
     [[ "$url" =~ ^#.* ]] && continue
     [ -z "$url" ] && continue
@@ -236,7 +243,7 @@ for target in $targets; do
       echo "downloading next file..."
       # Stop dispatcher
       echo "s" >&3
-      sleep 1
+      wait "$DISPATCHER_PID"
       break
     fi
   done
