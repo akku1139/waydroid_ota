@@ -1,4 +1,4 @@
-# set -x
+set -x
 set -e
 
 sudo mkdir /mnt/work
@@ -22,7 +22,7 @@ declare -a JOB_QUEUE=()
 
 ### End
 
-# init semaphore
+# init semaphore (and cmd channel)
 SEMAPHORE="/run/user/$(id -u)/dl_semaphore_$$"
 mkfifo "$SEMAPHORE" || { echo "Error: Couldn't create semaphore"; exit 1; }
 exec 3<> "$SEMAPHORE"
@@ -64,6 +64,7 @@ dispatcher() {
     read cmd <&3
 
     case $cmd in
+      echo "debug: [dispatcher] cmd: $cmd"
       s)
         echo "[dispatcher] stopping... (target: $target)"
         ;;
