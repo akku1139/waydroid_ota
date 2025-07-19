@@ -182,25 +182,25 @@ for target in $targets; do
   echo "target" $target
 
   ## Download manager
-  FILENAME_URL=()
-  FILENAME_PID=()
-  JOB_QUEUE=()
+  # FILENAME_URL=()
+  # FILENAME_PID=()
+  # JOB_QUEUE=()
 
-  while read -r url filename; do
-    [[ "$url" =~ ^#.* ]] && continue
-    [ -z "$url" ] && continue
+  # while read -r url filename; do
+  #   [[ "$url" =~ ^#.* ]] && continue
+  #   [ -z "$url" ] && continue
 
-    FILENAME_URL[$filename]="$url"
-    JOB_QUEUE+=($filename)
-    echo "added a job to queue: $filename"
-  done < <(python _akku/files.py "$target")
+  #   FILENAME_URL[$filename]="$url"
+  #   JOB_QUEUE+=($filename)
+  #   echo "added a job to queue: $filename"
+  # done < <(python _akku/files.py "$target")
 
-  echo "job count: ${#JOB_QUEUE[@]}"
+  # echo "job count: ${#JOB_QUEUE[@]}"
 
-  dispatcher "$target" &
-  DISPATCHER_PID="$!"
-  echo "dispatcher: PID: $DISPATCHER_PID"
-  sleep 1
+  # dispatcher "$target" &
+  # DISPATCHER_PID="$!"
+  # echo "dispatcher: PID: $DISPATCHER_PID"
+  # sleep 1
   ## End
   
   cmd="python _akku/save.py $target"
@@ -221,9 +221,9 @@ for target in $targets; do
       echo downloading $filename
 
       ## select downloader
-      # wget -nv -O /mnt/work/$filename $url
+      wget -nv -O /mnt/work/$filename $url
       # aria2c -x10 -s10 --console-log-level=warn -o /mnt/work/$filename $url # not working?
-      wait_for_file_foreground "$filename"
+      # wait_for_file_foreground "$filename"
 
       echo pushing
       git switch -c "$bname"
@@ -255,10 +255,10 @@ for target in $targets; do
       echo done
     else
       echo "downloading next file..."
-      # Stop dispatcher
-      echo "s" >&3
-      wait "$DISPATCHER_PID"
-      sleep 1
+      # # Stop dispatcher
+      # echo "s" >&3
+      # wait "$DISPATCHER_PID"
+      # sleep 1
       break
     fi
   done
