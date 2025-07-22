@@ -2,8 +2,7 @@ name: Sync
 
 on:
   schedule:
-    # Try a couple of times every Tuesday
-    - cron: '30 6,9,11,13 * * 2'
+    - cron: '30 6 * * 2'
   # Allows manual trigger from GitHub UI
   workflow_dispatch:
 
