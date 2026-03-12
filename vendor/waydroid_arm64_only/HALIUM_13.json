@@ -1,6 +1,15 @@
 {
     "response": [
         {
+            "datetime": 1773322952,
+            "filename": "lineage-20.0-20260312-HALIUM_13-waydroid_arm64_only-vendor.zip",
+            "id": "2f5052368fb43fbbddcafdf14233d0ab26ed6afe1de4da38eb960b34144b3fb8",
+            "romtype": "HALIUM_13",
+            "size": 20408054,
+            "url": "https://sourceforge.net/projects/waydroid/files/images/vendor/waydroid_arm64_only/lineage-20.0-20260312-HALIUM_13-waydroid_arm64_only-vendor.zip/download",
+            "version": "20.0"
+        },
+        {
             "datetime": 1772405107,
             "filename": "lineage-20.0-20260301-HALIUM_13-waydroid_arm64_only-vendor.zip",
             "id": "aae3ec7bbd20d580051fc8f3050ed5b58c6b9b712d2b17ad38163861c6131b74",
